@@ -1,0 +1,92 @@
+Procedure CreateSiteFromVertex;
+LABEL
+    99;
+VAR
+    hSheet, lno, site : HANDLE;
+    numVertex, i : INTEGER;
+    x, y, x2, y2, midX, midY : REAL;
+    { centerX, centerY : REAL; }
+    pName, diststr : STRING;
+    dist, ang: REAL;
+    borderVec : VECTOR;
+    boo : BOOLEAN;
+    { --- カスタマイズ設定 --- }
+    sheetName : STRING;
+    offsetDist : REAL;
+    lineRelX : REAL;
+    lineRelY : REAL;
+    circleRadius : REAL;
+
+{ ワークシートの行数を数える関数 }
+FUNCTION CountNumCell(hS : HANDLE) : INTEGER;
+VAR
+    n : INTEGER;
+BEGIN
+    n := 1;
+    { 2列目に数値が入っている間カウント }
+    WHILE (hS <> NIL) AND CellHasNum(hS, n + 1, 2) DO n := n + 1;
+    CountNumCell := n; 
+END;
+
+
+BEGIN
+    { 設定値の初期化 }
+    sheetName := '名称未設定-1';
+    offsetDist := 400;
+    lineRelX := 800;
+    lineRelY := 1500;
+    circleRadius := 100;
+
+    hSheet := GetObject(sheetName);
+    IF hSheet = NIL THEN BEGIN
+        AlrtDialog(Concat('ワークシート "', sheetName, '" が見つかりません。'));
+        GOTO 99;
+    END;
+
+    { 頂点数をカウントして変数に入れる }
+    numVertex := CountNumCell(hSheet);
+
+    { 1. 多角形の作成 }
+    BeginPoly;
+        FOR i := 1 TO numVertex DO BEGIN
+            GetWSCellValue(hSheet, i, 2, x);
+            GetWSCellValue(hSheet, i, 3, y);
+            AddPoint(x, y);
+        END;
+    EndPoly;
+    site := LNewObj;
+    boo := SetParent(site, GetLayerByName('面積'));
+
+    { 2. 各頂点に丸、線分、テキストを追加 }
+    FOR i := 1 TO numVertex DO BEGIN
+        GetWSCellValue(hSheet, i, 2, x);
+        GetWSCellValue(hSheet, i, 3, y);
+        GetWSCellString(hSheet, i, 1, pName);
+
+        Arc(x - circleRadius, y + circleRadius, x + circleRadius, y - circleRadius, 0, 360);
+        lno := LNewObj;
+        boo := SetParent(lno, GetLayerByName('敷地　点'));
+
+        MoveTo(x, y);
+        LineTo(x + lineRelX, y + lineRelY);
+
+        {TextOrigin(x + offsetDist, y + offsetDist);}
+        BeginText; pName EndText;
+        lno := LNewObj;
+        SetTextVerticalAlign(lno, 5);
+    END;
+
+    DSelectAll;
+    lno := HDuplicate(site, 0, 0);
+    boo := SetParent(lno, GetLayerByName('敷地線'));
+    SetLS(lno, -7);
+    SetSelect(lno);
+    DoMenuTextByName('Convert To Lines', 0);
+    SetLS(site, 0);
+    SetFPat(site, 1);
+    SetFillBack(site, 64513,63883,62623);
+
+    RedrawAll;
+    99:;
+END;
+Run(CreateSiteFromVertex);
