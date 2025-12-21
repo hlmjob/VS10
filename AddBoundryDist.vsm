@@ -1,0 +1,69 @@
+PROCEDURE ;
+VAR
+	selectedObj, lno : HANDLE;
+	vertNum, i : INTEGER;
+	x, y, x2, y2, midX, midY, dist, ang , centerX, centerY : REAL;
+	borderVec : VECTOR;
+	diststr : STRING;
+
+{ 数値を小数点以下切り捨てし、カンマ区切り形式にする関数 }
+FUNCTION CommaFormat(d : REAL) : STRING;
+VAR
+    s, resultS : STRING;
+    i, sLength : INTEGER;
+BEGIN
+    s := Num2Str(0, Trunc(d)); { 小数点以下を切り捨てて文字列化 }
+    sLength := Len(s);
+    resultS := '';
+    
+    FOR i := 1 TO sLength DO BEGIN
+        resultS := Concat(resultS, Copy(s, i, 1));
+        { 右から数えて3の倍数の位置で、かつ最後の文字でない場合にカンマを挿入 }
+        IF ((sLength - i) MOD 3 = 0) AND (i <> sLength) THEN BEGIN
+            resultS := Concat(resultS, ',');
+        END;
+    END;
+    CommaFormat := resultS;
+END;
+
+
+BEGIN
+	selectedObj := FSActLayer;
+	vertNum := GetVertNum(selectedObj);
+    Hcenter(selectedObj, centerX, centerY);
+
+
+    FOR i := 1 TO vertNum DO BEGIN
+        { 現在の頂点 }
+		GetPolyPt(selectedObj, i, x, y);
+        
+        { 次の頂点（最後の場合は最初の点に戻る） }
+        IF i < vertNum THEN BEGIN
+            GetPolyPt(selectedObj, i + 1, x2, y2);
+        END ELSE BEGIN
+			GetPolyPt(selectedObj, 1, x2, y2);
+        END;
+
+        dist := Distance(x, y, x2, y2);
+        borderVec.x := x2 - x;
+        borderVec.y := y2 - y;
+        borderVec.z := 0;
+        ang := Vec2Ang(borderVec);
+        IF (ang > 90) OR (ang <= -90) THEN ang := ang + 180;
+        midX := (x + x2) / 2;
+        midY := (y + y2) / 2;
+
+
+        diststr := CommaFormat(dist);
+
+        CreateText(Concat('隣地境界線 ', diststr));
+        lno := LNewObj;
+        SetTextOrientation(lno, midX, midY, ang, FALSE);
+        SetTextJust(lno, 2);
+		SetTextSize(lno, 0, GetTextLength(lno), 6);
+		SetTextFont(lno, 0, GetTextLength(lno), 16832);
+        IF midY > centerY THEN SetTextVerticalAlign(lno, 5)
+        ELSE SetTextVerticalAlign(lno, 1);
+    END;
+END;
+RUN(AddBoundryDist);
