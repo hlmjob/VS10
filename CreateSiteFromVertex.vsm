@@ -47,6 +47,7 @@ BEGIN
     numVertex := CountNumCell(hSheet);
 
     { 1. 多角形の作成 }
+    ClosePoly;
     BeginPoly;
         FOR i := 1 TO numVertex DO BEGIN
             GetWSCellValue(hSheet, i, 2, x);
