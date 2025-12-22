@@ -1,4 +1,4 @@
-PROCEDURE ;
+PROCEDURE AddBoundryDist;
 VAR
 	selectedObj, lno : HANDLE;
 	vertNum, i : INTEGER;
@@ -56,12 +56,15 @@ BEGIN
 
         diststr := CommaFormat(dist);
 
+
+
+あかあかあ
         CreateText(Concat('隣地境界線 ', diststr));
         lno := LNewObj;
         SetTextOrientation(lno, midX, midY, ang, FALSE);
         SetTextJust(lno, 2);
 		SetTextSize(lno, 0, GetTextLength(lno), 6);
-		SetTextFont(lno, 0, GetTextLength(lno), 16832);
+
         IF midY > centerY THEN SetTextVerticalAlign(lno, 5)
         ELSE SetTextVerticalAlign(lno, 1);
     END;
