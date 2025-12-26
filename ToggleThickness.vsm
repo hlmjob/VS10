@@ -1,0 +1,8 @@
+PROCEDURE ToggleThickness;
+VAR
+    bThick: BOOLEAN;
+BEGIN
+    bThick := GetPref(9);
+    SetPref(9, NOT bThick);
+END;
+RUN(ToggleThickness);
