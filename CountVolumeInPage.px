@@ -1,0 +1,31 @@
+PROCEDURE CountVolumeInPage;
+VAR
+    cnt : LONGINT;
+    p1X, p1Y, p2X, p2Y : REAL;
+
+    { カウント用のサブルーチン }
+    PROCEDURE CheckObject(h : HANDLE);
+    VAR
+        cX, cY : REAL;
+    BEGIN
+        { 図形の中心座標を取得 }
+        HCenter(h, cX, cY);
+        
+        { 中心が用紙範囲内(p1-p2)にあるか判定 }
+        IF (cX >= p1X) AND (cX <= p2X) AND (cY <= p1Y) AND (cY >= p2Y) THEN BEGIN
+            cnt := cnt + 1;
+        END;
+    END;
+
+BEGIN
+    cnt := 0;
+    { 1. 用紙の範囲座標を取得 }
+    GetDrawingSizeRect(p1X, p1Y, p2X, p2Y);
+
+    { 2. レイヤ 'volume' にある全ての図形に対して CheckObject を実行 }
+    ForEachObject(CheckObject, (L='ボリューム（1階）'));
+
+    { 3. 結果を表示 }
+    Message('用紙内の volume レイヤ図形数: ', cnt);
+END;
+RUN(CountVolumeInPage);
