@@ -1,4 +1,4 @@
-PROCEDURE RoomAreaCalc;
+PROCEDURE UpdateRoomLabelsByPosition;
 VAR
     gCount : INTEGER;
 
@@ -17,6 +17,20 @@ VAR
         FindExistingLabel := NIL; { 後のForEachObject内で判定させるため、ここでは空 }
     END;
 
+    FUNCTION GetRoomNameL(h : HANDLE) : HANDLE;
+    VAR
+        srcLayerName, destLayerName : STRING;
+    BEGIN
+        srcLayerName := GetLName(GetLayer(h));
+        destLayerName := '';
+        
+        IF Pos('1', srcLayerName) > 0 THEN destLayerName := 'プラン建具・文字（1階）'
+        ELSE IF Pos('2', srcLayerName) > 0 THEN destLayerName := 'プラン建具・文字（2階）'
+        ELSE IF Pos('3', srcLayerName) > 0 THEN destLayerName := 'プラン建具点文字（3階）';
+        GetRoomNameL := GetLayerByName(destLayername);
+    END;
+
+
     PROCEDURE ProcessObject(h : HANDLE);
     VAR
         areaVal, tsuboVal : REAL;
@@ -24,7 +38,7 @@ VAR
         kirisute : LONGINT;
         areaStr, tsuboStr, roomName, fullStr : STRING;
         hText : HANDLE;
-        foundText : BOOLEAN;
+        _, foundText : BOOLEAN;
 
         { 内包するテキストを探すためのサブ関数 }
         PROCEDURE CheckText(ht : HANDLE);
@@ -87,6 +101,7 @@ VAR
             SetTextVerticalAlign(hText, 3);
             SetTextSize(hText, 0, 99, 5.8);
             SetTextFont(hText, 0, 99, GetFontId('ＭＳ Ｐゴシック'));
+            _ := SetParent(hText, GetRoomNameL(h));
         END;
     END;
 
@@ -97,4 +112,4 @@ BEGIN
     RedrawAll;
     DSelectObj(T=TEXT);
 END;
-Run(RoomAreaCalc);
+Run(UpdateRoomLabelsByPosition);
