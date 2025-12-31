@@ -53,17 +53,14 @@ BEGIN
         midX := (x + x2) / 2;
         midY := (y + y2) / 2;
 
-
         diststr := CommaFormat(dist);
 
-
-
-あかあかあ
         CreateText(Concat('隣地境界線 ', diststr));
         lno := LNewObj;
         SetTextOrientation(lno, midX, midY, ang, FALSE);
         SetTextJust(lno, 2);
-		SetTextSize(lno, 0, GetTextLength(lno), 6);
+		SetTextSize(lno, 0, GetTextLength(lno), 5.8);
+		SetTextFont(lno, 0, 99, GetFontId('ＭＳ Ｐゴシック'));
 
         IF midY > centerY THEN SetTextVerticalAlign(lno, 5)
         ELSE SetTextVerticalAlign(lno, 1);
