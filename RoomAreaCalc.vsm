@@ -1,0 +1,100 @@
+PROCEDURE RoomAreaCalc;
+VAR
+    gCount : INTEGER;
+
+    { 指定した座標(x,y)の近くにある既存のラベルを探す関数 }
+    FUNCTION FindExistingLabel(targetX, targetY : REAL) : HANDLE;
+    VAR
+        hFound : HANDLE;
+        txtX, txtY, dist : REAL;
+    BEGIN
+        hFound := NIL;
+        { 図形と同じレイヤー内のテキストを全検索 }
+        hFound := FInLayer(GetLayer(FSActLayer)); { ※簡易的に現在のレイヤを対象 }
+        
+        { 実際には ForEachObject で座標が近いテキストを探すのが確実 }
+        { ここでは、作成済みのテキストが「図形の中心から500mm以内」にあるか判定するロジックを想定 }
+        FindExistingLabel := NIL; { 後のForEachObject内で判定させるため、ここでは空 }
+    END;
+
+    PROCEDURE ProcessObject(h : HANDLE);
+    VAR
+        areaVal, tsuboVal : REAL;
+        x, y : REAL;
+        kirisute : LONGINT;
+        areaStr, tsuboStr, roomName, fullStr : STRING;
+        hText : HANDLE;
+        foundText : BOOLEAN;
+
+        { 内包するテキストを探すためのサブ関数 }
+        PROCEDURE CheckText(ht : HANDLE);
+        VAR tx, ty : REAL;
+        BEGIN
+            IF (GetType(ht) = 10) AND (NOT foundText) THEN BEGIN
+                HCenter(ht, tx, ty);
+                { 図形の中心とテキストの中心が近い(例: 300mm以内)か判定 }
+                IF (Abs(tx - x) < 300) AND (Abs(ty - y) < 300) THEN BEGIN
+                    hText := ht;
+                    foundText := True;
+                END;
+            END;
+        END;
+
+    BEGIN
+        IF (GetType(h) = 3) OR (GetType(h) = 5) OR (GetType(h) = 21) THEN
+        BEGIN
+            gCount := gCount + 1;
+            { 面積計算 }
+            kirisute := Trunc(HArea(h) / 10000);
+            areaVal := kirisute / 100;
+            tsuboVal := Trunc((areaVal / 1.62) * 100) / 100; { 帖数も第2位切り捨て }
+            
+            areaStr := Concat(Num2Str(2, areaVal), '㎡');
+            tsuboStr := Concat(Num2Str(2, tsuboVal), '帖');
+            
+            HCenter(h, x, y);
+            foundText := False;
+            hText := NIL;
+
+            { 1. 同じレイヤー内のテキストを走査して位置が近いものを探す }
+            ForEachObject(CheckText, ALL); { すべての図形をチェック }
+
+            { 既存テキストがあった場合、名前を抽出 }
+            IF foundText THEN BEGIN
+                fullStr := GetText(hText);
+                IF Pos(Chr(13), fullStr) > 0 THEN
+                    roomName := Copy(fullStr, 1, Pos(Chr(13), fullStr) - 1)
+                ELSE
+                    roomName := fullStr;
+            END ELSE BEGIN
+                roomName := 'BR';
+            END;
+
+            fullStr := Concat(roomName, Chr(13), areaStr, Chr(13), tsuboStr);
+
+            IF foundText THEN BEGIN
+                SetText(hText, fullStr);
+                SetTextOrientation(hText, x, y, 0, FALSE);
+            END ELSE BEGIN
+                TextOrigin(x, y);
+                BeginText; fullStr EndText;
+                hText := LNewObj;
+                { レイヤーを合わせる }
+                IF SetParent(hText, GetParent(h)) THEN BEGIN END;
+            END;
+
+            SetTextJust(hText, 2);
+            SetTextVerticalAlign(hText, 3);
+            SetTextSize(hText, 0, 99, 5.8);
+            SetTextFont(hText, 0, 99, GetFontId('ＭＳ Ｐゴシック'));
+        END;
+    END;
+
+BEGIN
+    gCount := 0;
+    ForEachObject(ProcessObject, (SEL=TRUE));
+    IF gCount = 0 THEN AlrtDialog('対象図形が見つかりません。');
+    RedrawAll;
+    DSelectObj(T=TEXT);
+END;
+Run(RoomAreaCalc);
