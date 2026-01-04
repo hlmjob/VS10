@@ -1,21 +1,6 @@
-PROCEDURE UpdateRoomLabelsByPosition;
+PROCEDURE RoomAreaCalc;
 VAR
     gCount : INTEGER;
-
-    { 指定した座標(x,y)の近くにある既存のラベルを探す関数 }
-    FUNCTION FindExistingLabel(targetX, targetY : REAL) : HANDLE;
-    VAR
-        hFound : HANDLE;
-        txtX, txtY, dist : REAL;
-    BEGIN
-        hFound := NIL;
-        { 図形と同じレイヤー内のテキストを全検索 }
-        hFound := FInLayer(GetLayer(FSActLayer)); { ※簡易的に現在のレイヤを対象 }
-        
-        { 実際には ForEachObject で座標が近いテキストを探すのが確実 }
-        { ここでは、作成済みのテキストが「図形の中心から500mm以内」にあるか判定するロジックを想定 }
-        FindExistingLabel := NIL; { 後のForEachObject内で判定させるため、ここでは空 }
-    END;
 
     FUNCTION GetRoomNameL(h : HANDLE) : HANDLE;
     VAR
@@ -34,10 +19,11 @@ VAR
     PROCEDURE ProcessObject(h : HANDLE);
     VAR
         areaVal, tsuboVal : REAL;
-        x, y : REAL;
+        p1, p2 : POINT;
+        p3 : POINT3D;
         kirisute : LONGINT;
         areaStr, tsuboStr, roomName, fullStr : STRING;
-        hText : HANDLE;
+        hText, h3d : HANDLE;
         _, foundText : BOOLEAN;
 
         { 内包するテキストを探すためのサブ関数 }
@@ -47,7 +33,7 @@ VAR
             IF (GetType(ht) = 10) AND (NOT foundText) THEN BEGIN
                 HCenter(ht, tx, ty);
                 { 図形の中心とテキストの中心が近い(例: 300mm以内)か判定 }
-                IF (Abs(tx - x) < 300) AND (Abs(ty - y) < 300) THEN BEGIN
+                IF PtInRect(tx, ty, p1.x, p1.y, p2.x, p2.y) THEN BEGIN
                     hText := ht;
                     foundText := True;
                 END;
@@ -66,9 +52,14 @@ VAR
             areaStr := Concat(Num2Str(2, areaVal), '㎡');
             tsuboStr := Concat(Num2Str(2, tsuboVal), '帖');
             
-            HCenter(h, x, y);
             foundText := False;
             hText := NIL;
+
+            h3d := HDuplicate(h, 0, 0);
+            h3d := HExtrude(h3d, 0, 1);
+            _ := Centroid3D(h3d, p3.x, p3.y, p3.z); 
+            DelObject(h3d);
+            GetBbox(h, p1.x, p1.y, p2.x, p2.y);
 
             { 1. 同じレイヤー内のテキストを走査して位置が近いものを探す }
             ForEachObject(CheckText, ALL); { すべての図形をチェック }
@@ -88,9 +79,9 @@ VAR
 
             IF foundText THEN BEGIN
                 SetText(hText, fullStr);
-                SetTextOrientation(hText, x, y, 0, FALSE);
+                SetTextOrientation(hText, p3.x, p3.y, 0, FALSE);
             END ELSE BEGIN
-                TextOrigin(x, y);
+                TextOrigin(p3.x, p3.y);
                 BeginText; fullStr EndText;
                 hText := LNewObj;
                 { レイヤーを合わせる }
@@ -112,4 +103,4 @@ BEGIN
     RedrawAll;
     DSelectObj(T=TEXT);
 END;
-Run(UpdateRoomLabelsByPosition);
+Run(RoomAreaCalc);
