@@ -19,24 +19,25 @@ VAR
     PROCEDURE ProcessObject(h : HANDLE);
     VAR
         areaVal, tsuboVal : REAL;
-        p1, p2 : POINT;
         p3 : POINT3D;
         kirisute : LONGINT;
         areaStr, tsuboStr, roomName, fullStr : STRING;
-        hText, h3d : HANDLE;
+        hText, h3d, hpoly : HANDLE;
         _, foundText : BOOLEAN;
 
         { 内包するテキストを探すためのサブ関数 }
-        PROCEDURE CheckText(ht : HANDLE);
+        Function CheckText(ht : HANDLE) : BOOLEAN;
         VAR tx, ty : REAL;
         BEGIN
             IF (GetType(ht) = 10) AND (NOT foundText) THEN BEGIN
                 HCenter(ht, tx, ty);
-                { 図形の中心とテキストの中心が近い(例: 300mm以内)か判定 }
-                IF PtInRect(tx, ty, p1.x, p1.y, p2.x, p2.y) THEN BEGIN
+                { 図形の中心とテキストの中心が図形内に収まっているか }
+                hpoly := MakePolygon(h);
+                IF PtInPoly(tx, ty, hpoly) THEN BEGIN
                     hText := ht;
                     foundText := True;
                 END;
+                DelObject(hpoly);
             END;
         END;
 
@@ -59,10 +60,9 @@ VAR
             h3d := HExtrude(h3d, 0, 1);
             _ := Centroid3D(h3d, p3.x, p3.y, p3.z); 
             DelObject(h3d);
-            GetBbox(h, p1.x, p1.y, p2.x, p2.y);
 
-            { 1. 同じレイヤー内のテキストを走査して位置が近いものを探す }
-            ForEachObject(CheckText, ALL); { すべての図形をチェック }
+            { 1. 表示レイヤー内のテキストを走査して図形内既存テキストを探す }
+            ForEachObjectInLayer(CheckText, 1, 0, 2); 
 
             { 既存テキストがあった場合、名前を抽出 }
             IF foundText THEN BEGIN
