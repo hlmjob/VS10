@@ -1,0 +1,59 @@
+PROCEDURE CenterTextInRoom;
+VAR
+    gCount : INTEGER;
+    hShape, hText, h3d : HANDLE;
+    p3 : POINT3D;
+    dummyBool : BOOLEAN;
+    dummyReal, textAng : REAL;
+    { 1. 選択された図形の中から「基準となる図形」と「移動するテキスト」を特定する }
+    PROCEDURE ProcessObject(h : HANDLE);
+    BEGIN
+        { 四角形(3)または多角形(5)であれば基準図形として保持 }
+        IF (GetType(h) = 3) OR (GetType(h) = 5) THEN
+        BEGIN
+            hShape := h;
+        END
+        { テキスト(10)であれば移動対象として保持 }
+        ELSE IF (GetType(h) = 10) THEN
+        BEGIN
+            hText := h;
+        END;
+    END;
+BEGIN
+    gCount := 0; hShape := NIL; hText := NIL;
+    { 2. 選択図形を走査してハンドルを取得 }
+    ForEachObject(ProcessObject, (SEL=TRUE));
+
+    { 3. 両方の図形が見つかった場合のみ処理を実行 }
+    IF (hShape <> NIL) AND (hText <> NIL) THEN
+    BEGIN
+        gCount := 1;
+        { 精密な中心点（重心）計算のため、一時的に柱状体を作成 }
+        { 柱状体(24)は、元の2D図形の重心を3D空間で計算するために使用されます }
+        { HDuplicateで複製した図形をHExtrudeで厚み1mmの柱状体にする }
+        h3d := HDuplicate(hShape, 0, 0);
+        h3d := HExtrude(h3d, 0, 1);
+    
+        { Centroid3Dで柱状体の質量中心（＝2D図形の重心）を取得 }
+        dummyBool := Centroid3D(h3d, p3.x, p3.y, p3.z);
+    
+        { 一時的な3D図形を削除 }
+        DelObject(h3d);
+
+        { 4. 特定されたテキストを計算された中心点へ移動 }
+        { SetTextOrientationはテキストの挿入点と角度を一度に設定できます }
+        { ここでは角度0度、反転なしで重心(p3.x, p3.y)へ配置します }
+        { 水平方向をセンター(2)に設定}
+        SetTextJust(hText, 2);
+        { 垂直方向を中央揃え(3: Text centerline)に設定}
+        SetTextVerticalAlign(hText, 3);
+        GetTextOrientation(htext, dummyReal, dummyReal, textAng, dummyBool);
+        SetTextOrientation(hText, p3.x, p3.y, textAng, FALSE);
+    END;
+
+    { 完了処理 }
+    IF gCount = 0 THEN AlrtDialog('四角形（または多角形）と文字列をそれぞれ選択してください。');
+
+    ReDrawAll;
+END;
+Run(CenterTextInRoom);
