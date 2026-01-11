@@ -29,7 +29,7 @@ VAR
         Function CheckText(ht : HANDLE) : BOOLEAN;
         VAR tx, ty : REAL;
         BEGIN
-            IF (GetType(ht) = 10) AND (NOT foundText) THEN BEGIN
+            IF (GetType(ht) = 10) AND (NOT foundText)  AND (POS('帖', GetText(ht)) > 0) THEN BEGIN
                 HCenter(ht, tx, ty);
                 { 図形の中心とテキストの中心が図形内に収まっているか }
                 hpoly := MakePolygon(h);
@@ -90,7 +90,8 @@ VAR
 
             SetTextJust(hText, 2);
             SetTextVerticalAlign(hText, 3);
-            SetTextSize(hText, 0, 99, 5.8);
+            IF GetLScale(ActLayer) = 100 THEN SetTextSize(hText, 0, 99, 5.8)
+            ELSE IF GetLScale(ActLayer) = 150 THEN SetTextSize(hText, 0, 99, 4);
             SetTextFont(hText, 0, 99, GetFontId('ＭＳ Ｐゴシック'));
             _ := SetParent(hText, GetRoomNameL(h));
         END;
